@@ -30,6 +30,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from quantsys.data.provider import AlpacaProvider, TiingoProvider, load_universe
+from quantsys.data.sp500 import get_sp500
 from quantsys.run import ROOT, _load_dotenv
 from quantsys.strategy.momentum_logic import momentum_target_weights
 
@@ -37,12 +38,41 @@ MIN_ORDER_USD = 1.0       # skip dust orders
 LOG_PATH = ROOT / "live" / "rebalance_log.csv"
 
 
-def get_signal_closes(provider_name: str, universe: list[str], lookback: int) -> dict[str, pd.Series]:
+def _window(lookback: int) -> tuple[str, str]:
     end = pd.Timestamp.today().normalize()
     start = end - timedelta(days=int(lookback * 1.7) + 40)  # enough calendar days for `lookback` trading days
+    return start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
+
+
+def get_signal_closes(provider_name: str, universe: list[str], lookback: int) -> dict[str, pd.Series]:
+    start, end = _window(lookback)
     provider = TiingoProvider() if provider_name == "tiingo" else AlpacaProvider()
-    data = provider.get_history(universe, start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
+    data = provider.get_history(universe, start, end)
     return {s: df["close"] for s, df in data.items() if not df.empty}
+
+
+def build_closes(args) -> tuple[dict[str, pd.Series], str]:
+    """Resolve the universe and return {symbol: close series} for the momentum brain.
+
+    fixed  : the committed N-name universe.csv (Tiingo/Alpaca signal).
+    sp500  : dynamic S&P 500 (Wikipedia + CSV fallback) → Alpaca bars → keep the
+             top `--screen-top` by recent dollar volume (mirrors the original's
+             top-100-by-dollar-volume coarse screen). Momentum then ranks these.
+    """
+    if args.universe_mode == "fixed":
+        universe = load_universe(args.universe)
+        return get_signal_closes(args.provider, universe, args.lookback), f"fixed ({len(universe)})"
+
+    # sp500 mode — Alpaca for data (multi-symbol; no Tiingo rate limit)
+    syms, src = get_sp500(args.sp500_csv)
+    start, end = _window(args.lookback)
+    data = {s: df for s, df in AlpacaProvider().get_history(syms, start, end).items() if not df.empty}
+    # dollar-volume screen on recent ~20 sessions (IEX proxy)
+    dv = {s: float((df["close"] * df["volume"]).tail(20).mean()) for s, df in data.items()}
+    top = sorted(dv, key=dv.get, reverse=True)[: args.screen_top]
+    closes = {s: data[s]["close"] for s in top}
+    info = f"sp500 [{src}]: {len(syms)} listed → {len(data)} with data → top {len(closes)} by $vol"
+    return closes, info
 
 
 def log_rows(rows: list[dict]) -> None:
@@ -60,8 +90,12 @@ def main(argv=None) -> None:
     ap.add_argument("--monthly", action="store_true",
                     help="only rebalance on the first trading day of the month (or if the account is empty). "
                          "Makes a daily cron safe — other days are a no-op.")
-    ap.add_argument("--provider", default="tiingo", choices=["tiingo", "alpaca"], help="signal data source")
+    ap.add_argument("--provider", default="tiingo", choices=["tiingo", "alpaca"], help="signal data source (fixed mode)")
+    ap.add_argument("--universe-mode", default="fixed", choices=["fixed", "sp500"],
+                    help="fixed: universe.csv. sp500: dynamic S&P 500 (Wikipedia+CSV) → Alpaca data → $vol screen")
     ap.add_argument("--universe", default=str(ROOT / "universe.csv"))
+    ap.add_argument("--sp500-csv", default=str(ROOT / "data" / "sp500.csv"))
+    ap.add_argument("--screen-top", type=int, default=100, help="sp500 mode: keep top-N by dollar volume before momentum")
     ap.add_argument("--lookback", type=int, default=252)
     ap.add_argument("--skip", type=int, default=21)
     ap.add_argument("--top-n", type=int, default=10)
@@ -71,10 +105,9 @@ def main(argv=None) -> None:
 
     _load_dotenv(ROOT / ".env")
     mode = "LIVE" if args.live else "DRY-RUN"
-    universe = load_universe(args.universe)
 
-    # 1. signal — same brain as the backtest
-    closes = get_signal_closes(args.provider, universe, args.lookback)
+    # 1. universe + signal — same momentum brain as the backtest
+    closes, universe_info = build_closes(args)
     targets = momentum_target_weights(
         closes, args.lookback, args.skip, args.top_n, args.target_vol, args.vol_window
     )
@@ -111,7 +144,8 @@ def main(argv=None) -> None:
 
     print(f"\n========== REBALANCE [{mode}] ==========")
     print(f"  market open: {clock.is_open}   equity: ${equity:,.2f}   cash: ${float(account.cash):,.2f}")
-    print(f"  signal: {args.provider}   winners: {len(targets)}   target weight each: {list(targets.values())[0]*100:.1f}%")
+    print(f"  universe: {universe_info}")
+    print(f"  winners: {len(targets)}   target weight each: {list(targets.values())[0]*100:.1f}%")
     print(f"  current positions: {len(positions)}")
 
     sells, buys = [], []
