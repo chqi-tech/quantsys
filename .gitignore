@@ -1,0 +1,27 @@
+# secrets
+.env
+
+# data cache (never commit pulled market data or API keys)
+data_cache/*.parquet
+data_cache/*.csv
+!data_cache/.gitkeep
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+dist/
+build/
+
+# reports
+reports/*.html
+!reports/.gitkeep
+
+# live trading runtime logs
+live/rebalance_log.csv
+
+# os
+.DS_Store

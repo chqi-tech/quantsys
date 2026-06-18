@@ -1,0 +1,30 @@
+name: paper-trade
+
+# Forward paper-trading on Alpaca. Runs every weekday inside US market hours;
+# the script's --monthly guard means it only actually trades on the first
+# trading day of the month (or the very first run, when the account is empty).
+# Use the manual "Run workflow" button for the initial build.
+
+on:
+  schedule:
+    - cron: "0 15 * * 1-5"   # 15:00 UTC on weekdays (~10–11am ET — always within the session, DST-safe)
+  workflow_dispatch: {}        # manual trigger (use this for the first build)
+
+jobs:
+  rebalance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Sync deps
+        run: ~/.local/bin/uv sync --extra data
+
+      - name: Rebalance (Alpaca paper)
+        env:
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          TIINGO_API_KEY: ${{ secrets.TIINGO_API_KEY }}
+        run: ~/.local/bin/uv run python live/rebalance.py --live --monthly
