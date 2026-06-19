@@ -57,9 +57,13 @@ def momentum_target_weights(
     if not scores:
         return {}
     ranked = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
-    winners = [s for s, _ in ranked[:top_n]]
+    # Absolute-momentum gate (D2): only hold names with positive momentum.
+    # score = mom / vol and vol > 0, so score > 0 is exactly mom > 0. Names that
+    # fail the gate are dropped → held as cash. In a downturn this can hold fewer
+    # than top_n (or nothing), de-risking automatically.
+    winners = [s for s, sc in ranked[:top_n] if sc > 0]
     if not winners:
-        return {}
+        return {}  # nothing has positive momentum → all cash
     exposure = target_exposure(closes, winners, target_vol, vol_window)
     weight = exposure / len(winners)
     return {s: weight for s in winners}

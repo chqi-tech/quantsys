@@ -108,12 +108,16 @@ def main(argv=None) -> None:
 
     # 1. universe + signal — same momentum brain as the backtest
     closes, universe_info = build_closes(args)
+    if not closes:
+        # No price data at all = a data/API failure. Abort — do NOT trade or
+        # liquidate on bad data.
+        print("No price data returned — aborting (data issue; NOT trading).")
+        return
     targets = momentum_target_weights(
         closes, args.lookback, args.skip, args.top_n, args.target_vol, args.vol_window
     )
-    if not targets:
-        print("No targets (not enough data?). Aborting.")
-        return
+    # targets may be empty = a valid ALL-CASH signal (no positive momentum). We do
+    # NOT abort: that flows through below and closes any open positions, buys nothing.
 
     # 2. Alpaca paper account
     from alpaca.trading.client import TradingClient
@@ -145,7 +149,10 @@ def main(argv=None) -> None:
     print(f"\n========== REBALANCE [{mode}] ==========")
     print(f"  market open: {clock.is_open}   equity: ${equity:,.2f}   cash: ${float(account.cash):,.2f}")
     print(f"  universe: {universe_info}")
-    print(f"  winners: {len(targets)}   target weight each: {list(targets.values())[0]*100:.1f}%")
+    if targets:
+        print(f"  winners: {len(targets)}   target weight each: {list(targets.values())[0]*100:.1f}%")
+    else:
+        print("  winners: 0 — ALL CASH (no positive-momentum names this rebalance)")
     print(f"  current positions: {len(positions)}")
 
     sells, buys = [], []

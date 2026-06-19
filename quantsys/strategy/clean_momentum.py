@@ -70,13 +70,13 @@ class CleanMomentumStrategy(Strategy):
             target_vol=self.target_vol,
             vol_window=self.vol_window,
         )
-        if not targets:
-            return []
+        # Empty targets on a rebalance day = no positive momentum → go to cash
+        # (exit everything). Do NOT early-return, or we'd silently keep holdings.
         dt = self.dh.current_dt
         winners = set(targets)
 
         signals: list[SignalEvent] = []
-        for s in self._held - winners:            # exit names no longer winners
+        for s in self._held - winners:            # exit names no longer winners (all of them if cash)
             signals.append(SignalEvent(dt, s, target_weight=0.0))
         for s, weight in targets.items():          # target the winners
             signals.append(SignalEvent(dt, s, target_weight=weight))
