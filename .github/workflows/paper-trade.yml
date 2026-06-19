@@ -7,7 +7,10 @@ name: paper-trade
 
 on:
   schedule:
-    - cron: "0 15 * * 1-5"   # 15:00 UTC on weekdays (~10–11am ET — always within the session, DST-safe)
+    - cron: "5 14 * * 1-5"   # 14:05 UTC weekdays = 10:05 ET (EDT). ~30 min after the open, once opening
+                             # volatility / wide spreads have settled → cleaner fills. :05 dodges GitHub's
+                             # busy top-of-hour. NOTE: cron is fixed UTC — after DST ends (~Nov 2) change to
+                             # "5 15 * * 1-5" to stay at 10:05 ET (otherwise it runs 9:05 ET, pre-open).
   workflow_dispatch: {}        # manual trigger (use this for the first build)
 
 jobs:
