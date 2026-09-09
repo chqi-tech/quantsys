@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>quantsys 项目报告</title>
+<meta name="description" content="从零构建的事件驱动美股回测/纸面交易系统,以及一次对自己策略的严格证伪。">
+<style>
+  :root{
+    --ink:#141a24; --muted:#5b6672; --line:#e2e6ea; --line-strong:#c7ccd2;
+    --bg:#ffffff; --paper:#fbfcfd; --accent:#16233a; --good:#2f6f5f; --bad:#b23b3b;
+    --chip:#eef1f4; --mono:"SF Mono","JetBrains Mono","Roboto Mono",ui-monospace,Menlo,Consolas,monospace;
+    --sans:"PingFang SC","Noto Sans SC","Microsoft YaHei",-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    --serif:"Songti SC","Noto Serif SC",Georgia,"Times New Roman",serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+       line-height:1.7;font-size:15px;-webkit-font-smoothing:antialiased}
+  .sheet{max-width:840px;margin:0 auto;background:var(--bg);padding:56px 60px 72px;
+         border:1px solid var(--line);box-shadow:0 1px 40px rgba(20,26,36,.05)}
+  header.masthead{border-bottom:2px solid var(--accent);padding-bottom:20px;margin-bottom:34px}
+  .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+          color:var(--good);margin:0 0 10px}
+  h1{font-family:var(--serif);font-size:30px;line-height:1.25;margin:0 0 8px;font-weight:700;letter-spacing:.01em}
+  .sub{font-size:15px;color:var(--muted);margin:0 0 16px}
+  .meta{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:12.5px;color:var(--muted);font-family:var(--mono)}
+  .meta a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line-strong)}
+  h2{font-family:var(--serif);font-size:19px;margin:38px 0 12px;padding-bottom:7px;
+     border-bottom:1px solid var(--line);letter-spacing:.02em}
+  h2 .n{font-family:var(--mono);font-size:12px;color:var(--good);margin-right:10px;vertical-align:2px}
+  p{margin:0 0 13px}
+  strong{color:var(--accent)}
+  .lead{font-size:16px}
+  .callout{border-left:3px solid var(--accent);background:var(--paper);padding:14px 18px;margin:16px 0;font-size:14.5px}
+  .callout.kill{border-left-color:var(--bad)}
+  .callout.kill b{color:var(--bad)}
+  /* metrics */
+  table.metrics{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px}
+  table.metrics th,table.metrics td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line)}
+  table.metrics th{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  table.metrics td.v{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+  table.metrics tr.hl td{background:#fbf4f4}
+  table.metrics tr.hl td.v{color:var(--bad);font-weight:700}
+  .tw{overflow-x:auto;margin:14px 0;-webkit-overflow-scrolling:touch}
+  .note{font-size:12.5px;color:var(--muted)}
+  /* vs bars */
+  .bars{margin:18px 0 6px}
+  .bar-row{display:grid;grid-template-columns:76px 1fr 108px;align-items:center;gap:12px;margin:9px 0;font-size:13px}
+  .bar-row .lab{font-family:var(--mono);color:var(--muted)}
+  .track{background:var(--chip);border-radius:3px;height:22px;position:relative;overflow:hidden}
+  .fill{height:100%;border-radius:3px}
+  .fill.a{background:var(--accent)}
+  .fill.b{background:#b7c0ca}
+  .bar-row .val{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+  /* arch */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0;font-family:var(--mono);font-size:12.5px}
+  .flow .box{border:1px solid var(--line-strong);border-radius:6px;padding:8px 12px;background:var(--paper);text-align:center;line-height:1.35}
+  .flow .box b{display:block;color:var(--accent);font-size:13px}
+  .flow .arw{color:var(--good);font-weight:700}
+  .chain{font-family:var(--mono);font-size:12.5px;background:var(--paper);border:1px solid var(--line);
+         border-radius:8px;padding:14px 16px;color:var(--ink);line-height:1.9;margin:12px 0;overflow-x:auto}
+  .chain .op{color:var(--good)}
+  /* decisions */
+  table.dec{width:100%;border-collapse:collapse;font-size:13.5px;margin:12px 0}
+  table.dec th,table.dec td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.dec th{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left}
+  table.dec td.id{font-family:var(--mono);color:var(--good);white-space:nowrap}
+  table.dec td.d{font-family:var(--mono);white-space:nowrap;color:var(--accent)}
+  ul.tight{margin:8px 0 13px;padding-left:20px}
+  ul.tight li{margin:5px 0}
+  figure{margin:20px 0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--paper)}
+  figure img{display:block;width:100%;height:auto}
+  figcaption{font-size:12.5px;color:var(--muted);padding:10px 14px;border-top:1px solid var(--line)}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+  .chip{background:var(--chip);border-radius:20px;padding:4px 12px;font-size:12px;font-family:var(--mono);color:var(--accent)}
+  footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--line);
+         font-size:12px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  @media print{
+    body{background:#fff}
+    .sheet{border:none;box-shadow:none;max-width:none;padding:0 6px}
+    h2{page-break-after:avoid} .callout,table,.bars,.flow{page-break-inside:avoid}
+    a{color:var(--ink) !important}
+  }
+  @media (max-width:640px){ .sheet{padding:32px 20px} .bar-row{grid-template-columns:60px 1fr 80px} }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+  <header class="masthead">
+    <p class="kicker">Quant Research · Project Report</p>
+    <h1>quantsys —— 一次对自建量化系统与动量策略的严格证伪</h1>
+    <p class="sub">从零构建的事件驱动美股回测 / 纸面交易系统,以及"在可信条件下,这个策略并不成立"的诚实结论。</p>
+    <div class="meta">
+      <span>作者 · Chengwei Qi</span>
+      <span>方向 · 量化 / 系统化交易</span>
+      <span>代码 · <a href="https://github.com/chqi-tech/quantsys">github.com/chqi-tech</a></span>
+      <span>类型 · 个人研究 + 求职作品</span>
+      <span style="color:#b23b3b">⚠ 交易性质 · Alpaca 纸面账户(paper),无真实资金</span>
+    </div>
+  </header>
+
+  <h2><span class="n">01</span>摘要</h2>
+  <p class="lead">我从零构建了一套事件驱动回测系统,忠实实现并<strong>严格评估</strong>了一个横截面动量策略。
+  在可信的回测下(QuantConnect,2008–2026,无幸存者偏差),它对 SPY <strong>没有可靠超额</strong>
+  (信息比率 IR ≈ 0)。我据此<strong>停用了它</strong>,并把根因定位到:波动率目标叠加绝对动量过滤,
+  使组合 Beta 仅 0.55、约一半资金长期趴在现金 —— 压低了收益却没换来更高夏普。</p>
+  <div class="callout">
+    <b>这份报告展示的不是一个赚钱的策略,而是量化研究里最稀缺的能力:</b>防前视 / 防幸存者偏差的工程纪律、
+    对引擎正确性的外部对账验证,以及拿证据否定自己想法的诚实。这正是量化研究员的日常 —— 大部分工作是严谨地
+    <b>证伪</b>假设,而不是庆祝一条过拟合的漂亮曲线。
+  </div>
+
+  <h2><span class="n">02</span>系统架构</h2>
+  <p>行情以事件流驱动,单向流经四个组件;<strong>同一套策略代码</strong>贯穿回测与 Alpaca 纸面交易(paper trading,无真实资金),只替换数据源与执行层。</p>
+  <div class="flow">
+    <div class="box"><b>DataHandler</b>行情 bar</div><span class="arw">▸</span>
+    <div class="box"><b>Strategy</b>信号 · 唯一大脑</div><span class="arw">▸</span>
+    <div class="box"><b>Portfolio</b>账户 · 仓位</div><span class="arw">▸</span>
+    <div class="box"><b>Execution</b>次日开盘成交</div>
+  </div>
+  <p>三条工程底线,均由自动化测试守卫:</p>
+  <ul class="tight">
+    <li><strong>结构性防前视</strong> —— 策略任何时刻只能看到当前及过去的 bar,订单在<strong>次日开盘</strong>成交,
+      永不使用当日收盘;连"故意作弊"的策略也够不到未来数据。</li>
+    <li><strong>引擎正确性外部对账</strong> —— 同一策略、同一 universe 同时跑在 quantsys 与 QuantConnect,
+      比对两条净值曲线(判据:日收益相关性 ≥ 0.95),证明"结果可信"不是自说自话。</li>
+    <li><strong>无账户即可运行</strong> —— 内置合成数据,clone 即跑;插上免费 API key 才用真实行情。</li>
+  </ul>
+
+  <h2><span class="n">03</span>策略定义</h2>
+  <div class="chain">
+    动态 S&P 500 池 <span class="op">→</span> 成交额 top-100 粗筛 <span class="op">→</span> 12-1 风险调整动量打分
+    <span class="op">→</span> 取 top-10 <span class="op">→</span> 绝对动量过滤(仅正动量,否则转现金)
+    <span class="op">→</span> 波动率目标 15% <span class="op">→</span> 等权 <span class="op">→</span> 月度调仓
+  </div>
+  <div class="chips">
+    <span class="chip">lookback=252</span><span class="chip">skip=21</span><span class="chip">top_n=10</span>
+    <span class="chip">target_vol=0.15</span><span class="chip">vol_window=60</span><span class="chip">screen_top=100</span>
+  </div>
+  <p class="note">12-1 风险调整动量 = 过去 12 个月(跳过最近 1 个月)收益 ÷ 年化波动;绝对动量过滤在全负时清仓持现金,熊市自动降险。</p>
+
+  <h2><span class="n">04</span>评估方法:为什么这些数字可信</h2>
+  <p>仓库内的回测引擎默认使用固定 30 只 universe,<strong>带幸存者偏差,仅用于引擎打通与对账,不足以评估策略好坏</strong>。
+  真正用于下判断的数字,来自把同一策略跑在 QuantConnect 上(2008–2026、动态 universe、无幸存者偏差)。诚实地区分
+  <strong>"引擎跑得对"</strong>与<strong>"策略值不值"</strong>,是本项目刻意保留的底线。</p>
+
+  <h2><span class="n">05</span>结果</h2>
+  <div class="tw"><table class="metrics">
+    <thead><tr><th>指标</th><th style="text-align:right">值</th><th>解读</th></tr></thead>
+    <tbody>
+      <tr><td>累计收益</td><td class="v">~+591%</td><td class="note">略高于 SPY ~+500%</td></tr>
+      <tr><td>年化收益 CAGR</td><td class="v">11.33%</td><td class="note"></td></tr>
+      <tr><td>夏普 Sharpe</td><td class="v">0.50</td><td class="note">≈ 大盘水平</td></tr>
+      <tr><td>最大回撤</td><td class="v">29.6%</td><td class="note">含 2008;策略无回撤上限</td></tr>
+      <tr><td>年化波动</td><td class="v">13.5%</td><td class="note"></td></tr>
+      <tr class="hl"><td>Beta</td><td class="v">0.55</td><td class="note">病根:约半仓常年现金</td></tr>
+      <tr><td>Alpha</td><td class="v">2.9%</td><td class="note"></td></tr>
+      <tr class="hl"><td>信息比率 IR</td><td class="v">−0.017</td><td class="note">对 SPY 无可靠超额</td></tr>
+      <tr><td>PSR</td><td class="v">2.6%</td><td class="note">夏普显著性极低</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="bars">
+    <div class="bar-row"><span class="lab">累计收益</span><div class="track"><div class="fill a" style="width:100%"></div></div><span class="val">策略 +591%</span></div>
+    <div class="bar-row"><span class="lab">SPY</span><div class="track"><div class="fill b" style="width:84.6%"></div></div><span class="val">+500%</span></div>
+    <div class="bar-row"><span class="lab">Beta vs SPY</span><div class="track"><div class="fill a" style="width:55%"></div></div><span class="val">0.55</span></div>
+  </div>
+  <p class="note">收益略高,但 Beta 仅 0.55、夏普 ≈ 大盘、IR ≈ 0 —— 本质是"≈ 大盘收益、约一半风险",而非"跑赢大盘"。</p>
+
+  <h2><span class="n">06</span>根因分析 —— 以及为什么我停用它</h2>
+  <ul class="tight">
+    <li><strong>收益与回撤天生打架</strong>:要收益得多投,要少回撤得少投。波动率目标 + 绝对动量过滤让它平均只投一半仓(Beta 0.55),于是收益被压、夏普没提升 —— 大盘股动量的 edge 本就很薄。</li>
+    <li><strong>回撤 29.6%</strong> 主要来自 2008 与方向防御的滞后;<code>target_vol</code> 是<strong>波动目标</strong>,不是<strong>回撤上限</strong>。</li>
+  </ul>
+  <div class="callout kill">
+    <b>决定:停用,转向更广的策略家族学习。</b> 在不引入更强 alpha 来源的前提下,继续调这套 momentum
+    是投入产出最低的方向。<b>能基于证据 kill 掉自己的策略,并说清"为什么不成立",本身就是这个项目最有价值的产出。</b>
+  </div>
+
+  <h2><span class="n">07</span>因子层面的独立验证(Alphalens IC 分析)</h2>
+  <p>组合层面说"现金拖累",只是<strong>一种</strong>解释。为了不让结论悬在单一回测上,我又从<strong>因子层面</strong>
+  独立查了一次:把纸面交易与回测共用的那个大脑(<code>momentum_scores</code> = 12-1 动量 ÷ 波动)拿出来,
+  不建策略、不交易,只问 —— <strong>按这个因子排序,到底能不能把未来的赢家和输家分开?</strong></p>
+  <p class="note">管线:Tiingo 日线 → 每月末算因子 → Alphalens 计算 Rank IC 与分位收益。</p>
+
+  <div class="tw"><table class="metrics">
+    <thead><tr><th>预测周期</th><th style="text-align:right">平均 IC</th><th style="text-align:right">ICIR</th><th style="text-align:right">t 值</th><th style="text-align:right">胜率</th></tr></thead>
+    <tbody>
+      <tr><td>1 天</td><td class="v">0.0204</td><td class="v">0.07</td><td class="v">4.46</td><td class="v">53.6%</td></tr>
+      <tr><td>5 天</td><td class="v">0.0230</td><td class="v">0.08</td><td class="v">5.05</td><td class="v">54.8%</td></tr>
+      <tr><td>21 天</td><td class="v">0.0168</td><td class="v">0.06</td><td class="v">3.90</td><td class="v">53.2%</td></tr>
+    </tbody>
+  </table></div>
+
+  <ul class="tight">
+    <li><strong>t 值 3.9–5.0 → 不是运气。</strong>这个因子确实携带信息,方向是对的。</li>
+    <li><strong>但平均 IC 仅 0.017–0.023</strong>,低于股票因子"还行"的经验区间(0.03–0.05);
+      <strong>ICIR 仅 0.06–0.08</strong>,<strong>胜率 53%</strong> —— 只比抛硬币好一点点。</li>
+  </ul>
+
+  <figure>
+    <img src="assets/factor-quantile-returns.png" alt="按因子分位的未来 21 天平均收益:仅第 5 分位为正,1–4 分位为负且不单调">
+    <figcaption>分位收益(21 天)。图自身的判据是"单调阶梯 = 健康因子",而实测<strong>并不单调</strong>:
+      只有最高动量的第 5 分位为正(+8.7 bps),1–4 分位全为负且顺序混乱。</figcaption>
+  </figure>
+  <p><strong>这张图说明了一件更具体的事:因子的预测力只存在于最顶部那一档。</strong>
+  它能挑出前 20% 的赢家,但对其余股票几乎没有排序能力 —— 那部分是噪声。策略只买 top-10(约前 10%),
+  所以它<strong>确实用在了唯一有效的那一段上</strong>;问题是这一段本身就很薄(+8.7 bps / 21 天)。</p>
+
+  <div class="callout">
+    <b>两条互不依赖的证据,指向同一结论。</b>组合层面看到 IR ≈ 0,解释是现金拖累;因子层面则给出更根本的原因:
+    <b>这个 alpha 源本身就太薄</b> —— 薄到任何仓位管理都救不回来。交叉验证后的结论,比单一回测结果有力得多,
+    也让"停用它"这个决定从直觉变成了有依据的判断。
+  </div>
+
+  <h2><span class="n">08</span>决策记录</h2>
+  <p class="note">每个决策先开会逐点讨论、记录,再统一实现(不边做边改),完整留痕见仓库 <code>docs/REQUIREMENTS.md</code>。</p>
+  <div class="tw"><table class="dec">
+    <thead><tr><th style="width:44px">#</th><th>议题</th><th style="width:150px">决定</th></tr></thead>
+    <tbody>
+      <tr><td class="id">D1</td><td>集中度 / 波动率目标</td><td class="d">接受不改 · 先观察</td></tr>
+      <tr><td class="id">D2</td><td>绝对动量过滤(方向性防御)</td><td class="d">加入</td></tr>
+      <tr><td class="id">D3</td><td>择时过滤(SPY &lt; 200 日线)</td><td class="d">暂不加</td></tr>
+      <tr><td class="id">D4</td><td>universe 参数(top-100 / top-10)</td><td class="d">保留</td></tr>
+      <tr><td class="id">D5</td><td>回测费用模型</td><td class="d">不改</td></tr>
+      <tr><td class="id">D6</td><td>回测无幸存者偏差池</td><td class="d">推迟 phase 1.5</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2><span class="n">09</span>结论:这个项目证明了什么</h2>
+  <p>它<strong>不</strong>声称是一个盈利策略,也不证明我能找到 alpha —— 这两点对一个学习项目都不现实。它证明的是:
+  我能<strong>正确地</strong>搭建一套防前视、可对账的回测系统,能用<strong>可信</strong>的方式评估策略,并且在证据指向
+  "不成立"时<strong>诚实地承认并停手</strong>。对量化岗位而言,这套研究纪律远比一条漂亮但可疑的曲线更有说服力。</p>
+
+  <footer>
+    <span>quantsys · 事件驱动回测 + 纸面交易 · Python</span>
+    <span>Chengwei Qi · github.com/chqi-tech</span>
+  </footer>
+</div>
+</body>
+</html>

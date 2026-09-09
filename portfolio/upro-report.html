@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>杠杆择时策略的诚实复现</title>
+<meta name="description" content="把一个公开杠杆择时策略的回测窗口拉回 2000 年,测穿 dot-com 与 2008。">
+<style>
+  :root{
+    --ink:#141a24; --muted:#5b6672; --line:#e2e6ea; --line-strong:#c7ccd2;
+    --bg:#ffffff; --paper:#fbfcfd; --accent:#16233a; --good:#2f6f5f; --bad:#b23b3b;
+    --chip:#eef1f4;
+    --mono:"SF Mono","JetBrains Mono","Roboto Mono",ui-monospace,Menlo,Consolas,monospace;
+    --sans:"PingFang SC","Noto Sans SC","Microsoft YaHei",-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    --serif:"Songti SC","Noto Serif SC",Georgia,"Times New Roman",serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+       line-height:1.7;font-size:15px;-webkit-font-smoothing:antialiased}
+  .sheet{max-width:840px;margin:0 auto;background:var(--bg);padding:56px 60px 72px;
+         border:1px solid var(--line);box-shadow:0 1px 40px rgba(20,26,36,.05)}
+  header.masthead{border-bottom:2px solid var(--accent);padding-bottom:20px;margin-bottom:34px}
+  .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+          color:var(--good);margin:0 0 10px}
+  h1{font-family:var(--serif);font-size:30px;line-height:1.25;margin:0 0 8px;font-weight:700;letter-spacing:.01em}
+  .sub{font-size:15px;color:var(--muted);margin:0 0 16px}
+  .meta{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:12.5px;color:var(--muted);font-family:var(--mono)}
+  .meta a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line-strong)}
+  h2{font-family:var(--serif);font-size:19px;margin:38px 0 12px;padding-bottom:7px;
+     border-bottom:1px solid var(--line);letter-spacing:.02em}
+  h2 .n{font-family:var(--mono);font-size:12px;color:var(--good);margin-right:10px;vertical-align:2px}
+  p{margin:0 0 13px} strong{color:var(--accent)} .lead{font-size:16px}
+  .callout{border-left:3px solid var(--accent);background:var(--paper);padding:14px 18px;margin:16px 0;font-size:14.5px}
+  .callout.kill{border-left-color:var(--bad)} .callout.kill b{color:var(--bad)}
+  table.metrics{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}
+  table.metrics th,table.metrics td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  table.metrics th{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  table.metrics td.v{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+  table.metrics tr.hl td{background:#fbf4f4}
+  table.metrics tr.hl td.v{color:var(--bad);font-weight:700}
+  table.metrics tr.win td{background:#f3f8f6}
+  .tw{overflow-x:auto;margin:14px 0;-webkit-overflow-scrolling:touch}
+  .note{font-size:12.5px;color:var(--muted)}
+  ul.tight{margin:8px 0 13px;padding-left:20px} ul.tight li{margin:6px 0}
+  ol.tight{margin:8px 0 13px;padding-left:22px} ol.tight li{margin:8px 0}
+  figure{margin:20px 0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--paper)}
+  figure img{display:block;width:100%;height:auto}
+  figcaption{font-size:12.5px;color:var(--muted);padding:10px 14px;border-top:1px solid var(--line)}
+  footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--line);
+         font-size:12px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .back{display:inline-block;font-family:var(--mono);font-size:12.5px;color:var(--accent);
+        text-decoration:none;border-bottom:1px solid var(--line-strong);margin-bottom:22px}
+  @media print{
+    body{background:#fff} .sheet{border:none;box-shadow:none;max-width:none;padding:0 6px}
+    h2{page-break-after:avoid} .callout,table,figure{page-break-inside:avoid} a{color:var(--ink) !important}
+    .back{display:none}
+  }
+  @media (max-width:640px){ .sheet{padding:32px 20px} table.metrics{font-size:12px} }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+  <a class="back" href="index.html">← 返回作品集</a>
+  <header class="masthead">
+    <p class="kicker">Quant Research · Replication Study</p>
+    <h1>把回测窗口拉回 2000 年 —— 一个公开杠杆择时策略的诚实复现</h1>
+    <p class="sub">当一个策略的展示窗口恰好绕开了历史上两次最大的崩盘,它究竟还剩下什么?</p>
+    <div class="meta">
+      <span>作者 · Chengwei Qi</span>
+      <span>方法 · 可证伪化复现 + 全样本压力测试</span>
+      <span>代码 · <code>analysis/upro_regime.py</code></span>
+    </div>
+  </header>
+
+  <h2><span class="n">01</span>摘要</h2>
+  <p class="lead">某财经博主推广一套 SPY/UPRO 杠杆择时策略(内核是 Gayed 2016《Leverage for the Long Run》):
+  <strong>趋势判多头时持 3 倍杠杆,判空头时降险</strong>。其展示的回测起点为 2010 / 2017 年。
+  我把同一套规则的窗口<strong>拉回 2000 年</strong>,使其必须穿过 <strong>dot-com 泡沫</strong>与
+  <strong>2008 金融危机</strong>。</p>
+  <div class="callout kill">
+    <b>核心发现:被用来吸引人的"3 倍杠杆裸持",在完整历史里的最大回撤是 −97.1%(2008 年单年 −85.3%)——
+    实质上归零。</b>而它在博主的窗口里年化高达 32.8%。同一套持仓规则,换个起点就换了一副人格。
+  </div>
+  <p>但结论并非"这套东西全是假的"。<strong>趋势择时本身确实有效</strong>(全样本年化 16.2% vs SPY 的 8.3%);
+  真正的问题在于:<strong>它的全部价值都来自避开 2000 和 2008 —— 而这恰恰是博主窗口里没有的东西。</strong></p>
+
+  <h2><span class="n">02</span>我做了什么,让它变得可以被证伪</h2>
+  <ol class="tight">
+    <li><strong>把窗口拉回 2000 年。</strong>真实 UPRO 要到 2009-06 才存在,不处理就根本无法测试两次崩盘。
+      我用 SPY 按 <strong>3 倍日收益复利、并扣除成本</strong>来模拟 UPRO,从而把测试窗口延伸到 1999/2000。</li>
+    <li><strong>把无法证伪的部分替换掉。</strong>原策略空头端是"胜率 70% 的波段操作",没有可执行定义 ——
+      这种表述<strong>无法被证伪,因此也无法被检验</strong>。我把它换成两个明确且标准的版本:
+      <strong>熊→现金</strong> 与 <strong>熊→SPY(1x)</strong>。</li>
+  </ol>
+
+  <h2><span class="n">03</span>诚实声明:我的假设偏向对被检验方有利</h2>
+  <ul class="tight">
+    <li><strong>成本按 2.5%/年估计</strong>(费率 + 融资)。高利率年份(2000–07、2022+)真实成本更高 →
+      我模拟的 UPRO <strong>偏乐观</strong>。</li>
+    <li><strong>未计税费与切换滑点</strong> → <strong>同样偏乐观</strong>。</li>
+    <li><strong>信号滞后 1 天,无前视。</strong></li>
+  </ul>
+  <p class="note">换言之:真实表现只会比下表<strong>更差</strong>,不会更好。把不确定性放在对自己结论不利的一侧,结论才站得住。</p>
+
+  <h2><span class="n">04</span>结果:2000–2026(含两次大考)</h2>
+  <div class="tw"><table class="metrics">
+    <thead><tr><th>策略</th><th style="text-align:right">年化</th><th style="text-align:right">最大回撤</th>
+      <th style="text-align:right">波动</th><th style="text-align:right">Sharpe</th><th style="text-align:right">MAR</th><th style="text-align:right">累计</th></tr></thead>
+    <tbody>
+      <tr><td>SPY(1x 持有)</td><td class="v">8.3%</td><td class="v">−55.2%</td><td class="v">19.3%</td><td class="v">0.51</td><td class="v">0.15</td><td class="v">729%</td></tr>
+      <tr><td>QQQ(1x 持有)</td><td class="v">8.7%</td><td class="v">−83.0%</td><td class="v">26.8%</td><td class="v">0.45</td><td class="v">0.10</td><td class="v">808%</td></tr>
+      <tr class="hl"><td><b>UPRO(3x 裸持)</b></td><td class="v">10.7%</td><td class="v">−97.1%</td><td class="v">57.9%</td><td class="v">0.47</td><td class="v">0.11</td><td class="v">1381%</td></tr>
+      <tr class="win"><td>Regime:熊→现金</td><td class="v">14.8%</td><td class="v">−63.0%</td><td class="v">36.6%</td><td class="v">0.56</td><td class="v">0.23</td><td class="v">3741%</td></tr>
+      <tr class="win"><td>Regime:熊→SPY</td><td class="v">16.2%</td><td class="v">−72.7%</td><td class="v">39.6%</td><td class="v">0.58</td><td class="v">0.22</td><td class="v">5271%</td></tr>
+    </tbody>
+  </table></div>
+  <p>注意 3x 裸持那一行:<strong>承担了 57.9% 的年化波动,换回来的 Sharpe(0.47)却低于直接买 SPY(0.51)。</strong>
+  杠杆放大的是波动,不是风险调整后的收益。</p>
+
+  <figure>
+    <img src="assets/upro-equity-drawdown.png" alt="2000–2026 净值(对数轴)与回撤对比:UPRO 3x 裸持在 2009 年回撤触及 −97%">
+    <figcaption>上:净值(对数轴)。下:回撤对比 —— 绿线(3x 裸持)在 2009 年触及 −97%,几乎完全归零。</figcaption>
+  </figure>
+
+  <h2><span class="n">05</span>同一套规则,换个窗口就换个人格</h2>
+  <div class="tw"><table class="metrics">
+    <thead><tr><th>窗口</th><th style="text-align:right">UPRO 3x 裸持年化</th><th style="text-align:right">最大回撤</th></tr></thead>
+    <tbody>
+      <tr><td>2010–2026(博主窗口)</td><td class="v">32.8%</td><td class="v">−76.2%</td></tr>
+      <tr><td>2017–2026(博主另一窗口)</td><td class="v">35.2%</td><td class="v">−76.2%</td></tr>
+      <tr class="hl"><td><b>2000–2026(含两次崩盘)</b></td><td class="v">10.7%</td><td class="v">−97.1%</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>3 倍的年化差距,完全来自起点的选择</strong> —— 而不是策略本身有任何不同。
+  UPRO 裸持的关键年份:<strong>2000 −39.5% / 2001 −42.0% / 2002 −61.8% / 2008 −85.3%</strong>。</p>
+
+  <h2><span class="n">06</span>最锋利的那个反证</h2>
+  <div class="callout kill">
+    <b>在博主自己的 2010–2026 窗口里,不做择时(年化 32.8%)反而跑赢做择时(26.3%)。</b>
+    也就是说,他展示的那个窗口,<b>恰好是最不需要他那套择时的窗口</b>。
+  </div>
+  <p>而在完整的 2000–2026 样本里,关系彻底反转:择时版(16.2%)大幅跑赢裸持(10.7%)。
+  <strong>这说明择时的全部价值都来自"避开 2000 和 2008"</strong> —— 一个在他的展示窗口里
+  <strong>无法被观察到</strong>的价值。他用一个不需要保险的时期,去推销保险,却又用裸持杠杆的收益做招牌。</p>
+
+  <h2><span class="n">07</span>结论</h2>
+  <ul class="tight">
+    <li><strong>思路成立。</strong>趋势择时 + 杠杆在完整样本里确实创造价值:年化 16.2% vs SPY 8.3%,
+      MAR 从 0.15 提升到 0.22。这不是伪科学。</li>
+    <li><strong>但展示方式具有误导性。</strong>高收益来自裸持杠杆(完整历史里 −97.1%),
+      而防御价值来自窗口外的崩盘 —— 两者被拼在一起呈现。</li>
+    <li><strong>即使是有效的择时版,最大回撤仍有 −63%~−73%</strong>,远称不上"稳健";
+      而且我的成本假设还是偏乐观的。</li>
+  </ul>
+  <div class="callout">
+    <b>方法论上的收获:</b>判断一个策略,第一步永远是问"<b>它的回测窗口回避了什么</b>",
+    第二步是把其中<b>无法证伪的表述替换成可执行的定义</b>。这两步做完,大部分包装就自己散架了 ——
+    剩下的那部分,才值得认真对待。
+  </div>
+
+  <footer>
+    <span>复现代码 · analysis/upro_regime.py · 结论 · analysis/upro_report/summary.txt</span>
+    <span>Chengwei Qi</span>
+  </footer>
+</div>
+</body>
+</html>

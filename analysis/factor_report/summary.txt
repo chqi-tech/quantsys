@@ -1,0 +1,11 @@
+Factor: 12-1 risk-adjusted momentum (mom/vol)  —  Rank IC analysis
+
+ horizon |  mean IC |  IC std |   ICIR |  t-stat |  % > 0
+------------------------------------------------------------
+      1D |   0.0204 |  0.2804 |   0.07 |    4.46 |  53.6%
+      5D |   0.0230 |  0.2792 |   0.08 |    5.05 |  54.8%
+     21D |   0.0168 |  0.2636 |   0.06 |    3.90 |  53.2%
+
+Read it:  mean IC ~0.03-0.05 = decent for equities; ICIR = consistency
+(a factor's 'Sharpe'); t-stat > ~2 = unlikely to be luck; %>0 = how
+often the signal pointed the right way.

@@ -25,3 +25,9 @@ live/rebalance_log.csv
 
 # os
 .DS_Store
+
+# personal working notes (not for publication)
+NOTES.md
+
+# local agent/editor tooling
+.claude/

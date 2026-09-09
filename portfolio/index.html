@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chengwei Qi · 作品集</title>
+<meta name="description" content="量化金融在读 · 系统化策略研究与可信回测基础设施。">
+<style>
+  :root{
+    --ink:#141a24; --muted:#5b6672; --faint:#8b95a1; --line:#e2e6ea; --line-strong:#c7ccd2;
+    --bg:#ffffff; --paper:#fbfcfd; --accent:#16233a; --good:#2f6f5f; --bad:#b23b3b;
+    --chip:#eef1f4;
+    --mono:"SF Mono","JetBrains Mono","Roboto Mono",ui-monospace,Menlo,Consolas,monospace;
+    --sans:"PingFang SC","Noto Sans SC","Microsoft YaHei",-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    --serif:"Songti SC","Noto Serif SC",Georgia,"Times New Roman",serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+       line-height:1.7;font-size:15px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:900px;margin:0 auto;padding:0 28px}
+
+  /* ---------- hero ---------- */
+  .hero{padding:84px 0 46px;border-bottom:1px solid var(--line)}
+  .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;
+          color:var(--good);margin:0 0 14px}
+  h1{font-family:var(--serif);font-size:40px;line-height:1.2;margin:0 0 10px;font-weight:700;letter-spacing:.01em}
+  .tagline{font-size:17px;color:var(--accent);margin:0 0 18px;font-weight:500}
+  .bio{font-size:15px;color:var(--muted);max-width:640px;margin:0 0 24px}
+  .links{display:flex;flex-wrap:wrap;gap:10px}
+  .links a{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:12.5px;
+           text-decoration:none;color:var(--accent);border:1px solid var(--line-strong);
+           border-radius:6px;padding:7px 14px;background:var(--bg);transition:.15s}
+  .links a:hover{border-color:var(--accent);background:var(--accent);color:#fff}
+
+  /* ---------- section ---------- */
+  section{padding:46px 0}
+  h2{font-family:var(--serif);font-size:21px;margin:0 0 6px;letter-spacing:.02em}
+  .sec-note{font-size:13.5px;color:var(--faint);margin:0 0 26px}
+
+  /* ---------- project card ---------- */
+  .grid{display:grid;grid-template-columns:1fr;gap:20px}
+  .card{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:28px 30px;
+        transition:.18s;position:relative;overflow:hidden}
+  .card:hover{border-color:var(--line-strong);box-shadow:0 3px 26px rgba(20,26,36,.06)}
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
+  .card-top{display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+  .card h3{font-family:var(--serif);font-size:22px;margin:0;letter-spacing:.01em}
+  .status{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+          color:var(--good);background:var(--chip);border-radius:20px;padding:4px 11px;white-space:nowrap}
+  .card .one{font-size:15px;color:var(--accent);margin:0 0 12px;font-weight:500}
+  .card .desc{font-size:14.5px;color:var(--muted);margin:0 0 18px}
+  .card .desc b{color:var(--ink)}
+
+  /* key numbers */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:1px;
+         background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:0 0 18px}
+  .stat{background:var(--bg);padding:12px 14px}
+  .stat .v{font-family:var(--mono);font-size:19px;font-variant-numeric:tabular-nums;color:var(--accent);line-height:1.2}
+  .stat.warn .v{color:var(--bad)}
+  .stat .k{font-size:11px;color:var(--faint);margin-top:3px;letter-spacing:.04em}
+
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 20px}
+  .chip{background:var(--chip);border-radius:20px;padding:4px 11px;font-size:11.5px;
+        font-family:var(--mono);color:var(--muted)}
+  .card-links{display:flex;flex-wrap:wrap;gap:9px;padding-top:16px;border-top:1px solid var(--line)}
+  .card-links a{font-family:var(--mono);font-size:12.5px;text-decoration:none;color:var(--accent);
+                border-bottom:1px solid var(--line-strong);padding-bottom:1px;transition:.15s}
+  .card-links a:hover{border-color:var(--accent)}
+  .card-links .sep{color:var(--line-strong);font-size:12px}
+
+  /* takeaway strip */
+  .takeaway{background:var(--bg);border:1px solid var(--line);border-left:3px solid var(--good);
+            border-radius:8px;padding:18px 22px;font-size:14.5px;color:var(--muted)}
+  .takeaway b{color:var(--accent)}
+
+  footer{padding:36px 0 56px;border-top:1px solid var(--line);font-size:12.5px;color:var(--faint);
+         display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-family:var(--mono)}
+
+  @media (max-width:640px){
+    .hero{padding:56px 0 36px} h1{font-size:31px} .wrap{padding:0 20px} .card{padding:22px 20px}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="hero">
+    <p class="kicker">Quantitative Finance · Systematic Trading</p>
+    <h1>Chengwei Qi</h1>
+    <p class="tagline">量化金融在读 · 专注系统化策略研究与可信回测基础设施</p>
+    <p class="bio">
+      我关心的是<strong>“怎么知道一个策略到底成不成立”</strong>——防前视、防幸存者偏差、
+      引擎可对账、结论敢被证伪。比起漂亮的净值曲线,我更在意每一个决策我都能说清为什么。
+      <!-- 【待填】可在此补一句学校 / 项目 / 毕业时间,例如:XX 大学量化金融硕士(2027 年毕业)。 -->
+    </p>
+    <div class="links">
+      <a href="https://github.com/chqi-tech">GitHub</a>
+      <a href="mailto:【待填:公开邮箱】">Email</a>
+      <a href="【待填:简历 PDF 链接】">简历 / CV</a>
+    </div>
+  </header>
+
+  <section>
+    <h2>项目</h2>
+    <p class="sec-note">Selected work</p>
+
+    <div class="grid">
+
+      <!-- ============ 项目卡片:quantsys ============ -->
+      <article class="card">
+        <div class="card-top">
+          <h3>quantsys</h3>
+          <span class="status">Phase 1 · 已完成</span>
+        </div>
+        <p class="one">从零构建的事件驱动美股回测 / 纸面交易系统 —— 以及一次对自己策略的严格证伪。</p>
+        <p style="font-size:12.5px;color:#b23b3b;margin:0 0 12px;font-family:var(--mono)">⚠ 全程 Alpaca 纸面账户(paper trading),无真实资金</p>
+        <p class="desc">
+          手写事件驱动引擎(<b>结构性防前视</b>,订单在次日开盘成交),实现 12-1 风险调整横截面动量策略,
+          并把<b>同一套策略代码</b>贯穿回测 → Alpaca 纸面交易。为验证引擎正确性,我把同一策略同时跑在
+          QuantConnect 上做<b>净值曲线对账</b>。可信回测(2008–2026,无幸存者偏差)显示它对 SPY
+          <b>没有可靠超额(IR ≈ 0)</b>,我据此停用了它。
+          随后我又用 <b>Alphalens 从因子层面独立复核</b>:t 值 3.9–5.0 说明因子<b>统计上真实</b>,
+          但 IC 仅 0.02、ICIR 0.07、胜率 53% —— <b>经济上极弱</b>。两条互不依赖的证据指向同一结论,
+          "停用"因此从直觉变成了有依据的判断。
+        </p>
+
+        <div class="stats">
+          <div class="stat"><div class="v">11.33%</div><div class="k">年化 CAGR</div></div>
+          <div class="stat"><div class="v">0.50</div><div class="k">夏普</div></div>
+          <div class="stat"><div class="v">29.6%</div><div class="k">最大回撤</div></div>
+          <div class="stat warn"><div class="v">0.55</div><div class="k">Beta(病根)</div></div>
+          <div class="stat warn"><div class="v">−0.017</div><div class="k">信息比率 IR</div></div>
+          <div class="stat"><div class="v">8/8</div><div class="k">测试通过</div></div>
+        </div>
+
+        <div class="chips">
+          <span class="chip">Python</span><span class="chip">事件驱动引擎</span><span class="chip">pandas / numpy</span>
+          <span class="chip">Alphalens</span><span class="chip">Tiingo</span><span class="chip">Alpaca(纸面)</span>
+          <span class="chip">QuantConnect 对账</span><span class="chip">pytest</span><span class="chip">uv</span>
+        </div>
+
+        <div class="card-links">
+          <a href="quantsys-report.html">▸ 项目报告(完整)</a><span class="sep">·</span>
+          <a href="https://github.com/chqi-tech/quantsys">源码 GitHub</a><span class="sep">·</span>
+          <a href="https://github.com/chqi-tech/quantsys#readme">README</a>
+        </div>
+      </article>
+
+      <!-- ============ 项目卡片:UPRO 杠杆择时复现 ============ -->
+      <article class="card">
+        <div class="card-top">
+          <h3>杠杆择时策略的诚实复现</h3>
+          <span class="status">独立研究</span>
+        </div>
+        <p class="one">把一个公开策略的回测窗口拉回 2000 年 —— 当它必须穿过 dot-com 和 2008,还剩下什么?</p>
+        <p class="desc">
+          某财经博主推广一套 SPY/UPRO 杠杆择时(内核为 Gayed 2016),展示窗口起于 2010 / 2017 年。
+          我做了两件事让它<b>可被证伪</b>:用 SPY 按 3 倍日收益复利并扣成本<b>模拟 UPRO</b>,
+          从而把测试延伸到真实 UPRO 尚未存在的 2000 年;并把"胜率 70% 的波段"这类<b>无法证伪的表述</b>
+          替换为明确定义的「熊→现金」与「熊→SPY」。结果:被当作招牌的 <b>3x 裸持在完整历史中回撤 −97.1%</b>
+          (2008 年单年 −85.3%),而它在博主窗口里年化高达 32.8%。
+        </p>
+
+        <div class="stats">
+          <div class="stat warn"><div class="v">−97.1%</div><div class="k">3x 裸持最大回撤</div></div>
+          <div class="stat"><div class="v">32.8%</div><div class="k">博主窗口年化</div></div>
+          <div class="stat warn"><div class="v">10.7%</div><div class="k">全样本年化</div></div>
+          <div class="stat"><div class="v">16.2%</div><div class="k">择时版年化</div></div>
+          <div class="stat"><div class="v">8.3%</div><div class="k">同期 SPY</div></div>
+          <div class="stat"><div class="v">26 年</div><div class="k">样本长度</div></div>
+        </div>
+
+        <div class="chips">
+          <span class="chip">Python</span><span class="chip">pandas / numpy</span><span class="chip">matplotlib</span>
+          <span class="chip">Tiingo</span><span class="chip">杠杆复利模拟</span><span class="chip">趋势择时</span>
+        </div>
+
+        <div class="card-links">
+          <a href="upro-report.html">▸ 研究报告(完整)</a><span class="sep">·</span>
+          <a href="https://github.com/chqi-tech/quantsys/blob/main/analysis/upro_regime.py">复现代码</a>
+        </div>
+      </article>
+      <!-- ==========================================
+           要新增项目?复制上面整个 <article class="card">…</article>,
+           改标题 / 一句话 / 描述 / stats / chips / 链接即可。
+           grid 会自动排版,无需改 CSS。
+           ========================================== -->
+
+    </div>
+  </section>
+
+  <section style="padding-top:8px">
+    <div class="takeaway">
+      <b>我做事的方式:</b>每个设计决策先逐点讨论、书面记录,再统一实现(不边做边改);
+      每条"结果可信"的声明背后都有测试或外部对账支撑;当证据指向"不成立",<b>我会诚实地承认并停手</b>——
+      因为量化研究的日常本来就是严谨地证伪假设。
+    </div>
+  </section>
+
+  <footer>
+    <span>© 2026 Chengwei Qi</span>
+    <span>github.com/chqi-tech</span>
+  </footer>
+
+</div>
+</body>
+</html>
